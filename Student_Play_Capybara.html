@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Whack-a-Capybara Educational Game</title>
+    <link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;600;700&amp;display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #d4a5d3;
+            --secondary: #f3c6f1;
+            --accent: #ff9ce9;
+            --text-dark: #4a2c4a;
+            --white: #ffffff;
+            --grass-bg: #ffe4fa;
+        }
+
+        * {
+            box-sizing: border-box;
+            font-family: 'Mali', cursive;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            color: var(--text-dark);
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--grass-bg);
+        }
+
+        /* --- Screens --- */
+        .screen {
+            display: none;
+            width: 100%;
+            height: 100%;
+        }
+        .screen.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- Setup Screen --- */
+        #setup-screen {
+            background-image: radial-gradient(var(--accent) 15%, transparent 16%);
+            background-size: 30px 30px;
+            padding: 20px;
+            overflow-y: auto;
+            align-items: center;
+        }
+        .setup-container {
+            background: var(--white);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 800px;
+            margin-bottom: 20px;
+            border: 4px solid var(--primary);
+        }
+        h1, h2 { text-align: center; color: var(--text-dark); margin-top: 0; }
+        .form-group { margin-bottom: 15px; }
+        label { font-weight: bold; display: block; margin-bottom: 5px; }
+        input[type="text"], input[type="number"], select {
+            width: 100%; padding: 10px; border: 2px solid var(--secondary);
+            border-radius: 10px; font-size: 16px;
+        }
+        button {
+            background-color: var(--primary); color: var(--white);
+            border: none; padding: 12px 20px; border-radius: 12px;
+            font-size: 18px; font-weight: bold; cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
+        }
+        button:hover { transform: scale(1.05); filter: brightness(1.1); }
+        
+        .save-load-group {
+            display: flex; gap: 10px; margin-bottom: 20px;
+            background: var(--secondary); padding: 15px; border-radius: 15px;
+        }
+        .save-load-group button { flex: 1; background-color: var(--text-dark); }
+        .save-load-group button:hover { background-color: #2a1625; }
+        
+        .options-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; }
+        .option-item { display: flex; align-items: center; gap: 10px; }
+        .question-card {
+            background: var(--secondary); padding: 15px; border-radius: 15px;
+            margin-bottom: 15px; border: 2px solid var(--primary);
+        }
+        .option-badge {
+            display: inline-block; padding: 5px 10px; border-radius: 8px;
+            margin: 5px; background: var(--white); border: 2px solid var(--primary);
+        }
+        .option-badge.correct { background: var(--accent); color: white; border-color: var(--accent); }
+
+        /* --- Game Screen --- */
+        #game-screen {
+            flex-direction: column;
+            height: 100vh;
+            background: linear-gradient(to bottom, #aee2ff 45%, #88d438 45%);
+        }
+
+        .game-header {
+            height: 10vh; display: flex; justify-content: space-between; align-items: center;
+            padding: 0 40px; background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1); font-size: 24px; font-weight: bold; z-index: 10;
+        }
+
+        .question-display {
+            height: 25vh; display: flex; justify-content: center; align-items: center; padding: 20px;
+        }
+        .question-content {
+            background: var(--white); padding: 15px 40px; border-radius: 20px; font-size: 32px;
+            font-weight: bold; text-align: center; box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+            max-width: 80%; max-height: 100%; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; border: 4px solid var(--text-dark); color: #4CAF50;
+        }
+        .question-content img { max-height: 15vh; border-radius: 10px; }
+        .question-content audio { margin-top: 10px; height: 40px; }
+
+        .game-board {
+            height: 65vh; display: grid; grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(2, 1fr); gap: 20px; padding: 20px 10vw;
+            align-items: center; justify-items: center;
+        }
+
+        /* --- Hole & Capybara --- */
+        .hole-wrapper {
+            position: relative; width: 100%; max-width: 220px; height: 160px;
+            display: flex; justify-content: center; align-items: flex-end; overflow: hidden;
+        }
+        .hole-oval {
+            position: absolute; bottom: 10px; width: 90%; height: 40px;
+            background-color: #3e2723; border-radius: 50%;
+            box-shadow: inset 0 5px 10px rgba(0,0,0,0.8); z-index: 2;
+        }
+        .hole-front-lip {
+            position: absolute; bottom: 0px; width: 100%; height: 30px;
+            background-color: #88d438; z-index: 4;
+        }
+
+        .mole {
+            position: absolute; bottom: -160px; width: 90%; height: 140px;
+            background-image: url('capy2.png'); 
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: bottom center;
+            background-color: transparent;
+            z-index: 3; cursor: pointer; transition: bottom 0.2s ease-out, filter 0.2s;
+            display: flex; justify-content: center; align-items: center;
+        }
+        .mole.up { bottom: 20px; }
+        .mole.down { bottom: -160px; }
+        
+        .mole.status-correct { background-image: url('capy1.png'); }
+        .mole.status-wrong { background-image: url('capy3.png'); }
+
+        .mole-text-container {
+            position: absolute; top: 30%; width: 150%; background: var(--white);
+            border: 3px solid var(--accent); border-radius: 12px; padding: 6px;
+            text-align: center; box-shadow: 0 4px 8px rgba(0,0,0,0.2); pointer-events: none;
+            white-space: nowrap; display: flex; justify-content: center; align-items: center; overflow: hidden;
+            transition: opacity 0.2s; 
+        }
+        .mole-text { font-weight: 700; color: var(--text-dark); margin: 0; line-height: 1; font-size: 32px; }
+
+        /* --- Start / Result Screen --- */
+        #result-screen, #student-start-screen {
+            justify-content: center; align-items: center; background: var(--grass-bg);
+            background-image: radial-gradient(var(--accent) 15%, transparent 16%); background-size: 30px 30px;
+        }
+        .result-box {
+            background: var(--white); padding: 50px; border-radius: 30px; text-align: center;
+            border: 5px solid var(--accent); box-shadow: 0 15px 30px rgba(0,0,0,0.15);
+        }
+        .result-box h1 { font-size: 48px; color: var(--accent); margin-top: 0; }
+        .result-box p { font-size: 28px; }
+        .result-buttons {
+            display: flex; gap: 20px; justify-content: center; margin-top: 30px;
+        }
+        .result-buttons button {
+            padding: 15px 30px; font-size: 22px; width: 200px;
+        }
+    </style>
+<script class="injected-state">
+                window.STUDENT_MODE = true;
+                window.SAVED_QUESTIONS = [{"type":"text","content":"WHICH WORD HAS THE CORRECT SPELLING?","options":["acquire","asquire","acquier","ucquire"],"correctAnswer":"acquire"},{"type":"text","content":"WHICH WORD HAS THE CORRECT SPELLING?","options":["establish","astablish","estabish","estabilish"],"correctAnswer":"establish"},{"type":"text","content":"WHICH WORD HAS THE CORRECT SPELLING?","options":["fatal","fatul","fatel","fatil"],"correctAnswer":"fatal"},{"type":"text","content":"WHICH WORD HAS THE CORRECT SPELLING?","options":["promote","prumote","promut","promoat"],"correctAnswer":"promote"},{"type":"text","content":"WHICH WORD HAS THE CORRECT SPELLING?","options":["retreat","retreet","reatreat","ritreat"],"correctAnswer":"retreat"},{"type":"text","content":"WHICH WORD HAS THE CORRECT SPELLING?","options":["seize","seeze","sieze","ceeze"],"correctAnswer":"seize"},{"type":"text","content":"WHICH WORD HAS THE CORRECT SPELLING?","options":["surrender","surender","serrender","surrendar"],"correctAnswer":"surrender"},{"type":"text","content":"WHICH WORD HAS THE CORRECT SPELLING?","options":["thrive","thriv","thryve","thriev"],"correctAnswer":"thrive"},{"type":"text","content":"WHICH WORD HAS THE CORRECT SPELLING?","options":["transform","transfrom","tranzform","transeform"],"correctAnswer":"transform"},{"type":"text","content":"WHICH WORD HAS THE CORRECT SPELLING?","options":["unravel","unravul","unravil","unravell"],"correctAnswer":"unravel"}];
+                window.SAVED_TIME = 3;
+            </script></head>
+<body>
+
+    <!-- ================= SETUP SCREEN (Teacher Mode) ================= -->
+    
+
+    <!-- ================= STUDENT START SCREEN ================= -->
+    <div id="student-start-screen" class="screen active">
+        <div class="result-box">
+            <h1>🐹 Whack-a-Capybara</h1>
+            <p style="font-size: 24px;">Are you ready?</p>
+            <button onclick="startStudentGame()" style="background-color: #4CAF50; font-size: 28px; padding: 15px 40px; margin-top: 20px;">▶️ START GAME</button>
+        </div>
+    </div>
+
+    <!-- ================= GAME SCREEN ================= -->
+    <div id="game-screen" class="screen">
+        <div class="game-header">
+            <div>Score: <span id="score-display">0</span></div>
+            <div>Time: <span id="time-display">00:00</span></div>
+        </div>
+        <div class="question-display">
+            <div class="question-content" id="current-question-display"></div>
+        </div>
+        <div class="game-board" id="game-board"></div>
+    </div>
+
+    <!-- ================= RESULT SCREEN ================= -->
+    <div id="result-screen" class="screen">
+        <div class="result-box">
+            <h1>⏰ Time's Up!</h1>
+            <p>You scored <strong id="final-score" style="color: var(--accent); font-size: 40px;">0</strong> points!</p>
+            <div class="result-buttons">
+                <button onclick="replayGame()" style="background-color: #4CAF50;">🔄 Replay</button>
+                <button onclick="goBackToSetup()" style="background-color: var(--primary);">🏠 Back</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= JAVASCRIPT ================= -->
+    <script>
+        let questions = [];
+        let currentGameTime = 0;
+        let score = 0;
+        let timerInterval;
+        let activeMoleInterval;
+        let currentOptions = [];
+        let currentCorrect = '';
+        let lastQuestionIndex = -1; 
+        const totalMoles = 6;
+
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playTone(type) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            const now = audioCtx.currentTime;
+            
+            if (type === 'hit') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(800, now);
+                osc.frequency.exponentialRampToValueAtTime(100, now + 0.1);
+                gain.gain.setValueAtTime(0.5, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                osc.start(now); osc.stop(now + 0.1);
+            } else if (type === 'correct') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(659.25, now); 
+                gain.gain.setValueAtTime(0, now);
+                gain.gain.linearRampToValueAtTime(0.6, now + 0.05);
+                gain.gain.exponentialRampToValueAtTime(0.1, now + 0.2);
+                osc.frequency.setValueAtTime(523.25, now + 0.2); 
+                gain.gain.linearRampToValueAtTime(0.6, now + 0.25);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+                osc.start(now); osc.stop(now + 0.5);
+            } else if (type === 'wrong') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(100, now);
+                osc.frequency.linearRampToValueAtTime(40, now + 0.1);
+                osc.frequency.linearRampToValueAtTime(60, now + 0.2);
+                osc.frequency.linearRampToValueAtTime(20, now + 0.3);
+                gain.gain.setValueAtTime(0.8, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                osc.start(now); osc.stop(now + 0.3);
+            }
+        }
+
+        // --- HỆ THỐNG LƯU TRẠNG THÁI RA HTML ---
+        
+        // 1. Lưu file HTML cho Giáo viên (Có thể mở lên edit tiếp)
+        function exportTeacherHTML() {
+            let clonedDoc = document.documentElement.cloneNode(true);
+            
+            // Xóa rác preview trong HTML để load lại cho sạch
+            let preview = clonedDoc.querySelector('#questions-preview');
+            if(preview) preview.innerHTML = '';
+
+            // Xóa các script trạng thái cũ
+            let oldScripts = clonedDoc.querySelectorAll('.injected-state');
+            oldScripts.forEach(s => s.remove());
+
+            const timeConfig = document.getElementById('game-time').value;
+            
+            let injectedScript = document.createElement('script');
+            injectedScript.className = 'injected-state';
+            // Cài đặt dữ liệu vào thẳng HTML
+            injectedScript.textContent = `
+                window.STUDENT_MODE = false;
+                window.SAVED_QUESTIONS = ${JSON.stringify(questions).replace(/<\/script>/g, '<\\/script>')};
+                window.SAVED_TIME = ${timeConfig};
+            `;
+            clonedDoc.querySelector('head').appendChild(injectedScript);
+            
+            let finalHTML = "<!DOCTYPE html>\n<html lang=\"en\">\n" + clonedDoc.innerHTML + "\n</html>";
+            const blob = new Blob([finalHTML], { type: 'text/html' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'Teacher_Edit_Capybara.html'; 
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+
+            alert("Progress saved as HTML!\nNext time, just open the downloaded HTML file in your browser to continue editing.");
+        }
+
+        // 2. Xuất game HTML cho Học sinh (Khóa chức năng Edit)
+        function exportForStudents() {
+            if (questions.length === 0) return alert("Please add at least 1 question before exporting!");
+            
+            let clonedDoc = document.documentElement.cloneNode(true);
+            
+            // Xóa hẳn màn hình Setup
+            let setup = clonedDoc.querySelector('#setup-screen');
+            if(setup) setup.remove();
+            
+            clonedDoc.querySelector('#game-screen').classList.remove('active');
+            clonedDoc.querySelector('#result-screen').classList.remove('active');
+            clonedDoc.querySelector('#student-start-screen').classList.add('active');
+            
+            let oldScripts = clonedDoc.querySelectorAll('.injected-state');
+            oldScripts.forEach(s => s.remove());
+
+            const timeConfig = document.getElementById('game-time').value;
+            
+            let injectedScript = document.createElement('script');
+            injectedScript.className = 'injected-state';
+            injectedScript.textContent = `
+                window.STUDENT_MODE = true;
+                window.SAVED_QUESTIONS = ${JSON.stringify(questions).replace(/<\/script>/g, '<\\/script>')};
+                window.SAVED_TIME = ${timeConfig};
+            `;
+            clonedDoc.querySelector('head').appendChild(injectedScript);
+            
+            let finalHTML = "<!DOCTYPE html>\n<html lang=\"en\">\n" + clonedDoc.innerHTML + "\n</html>";
+            const blob = new Blob([finalHTML], { type: 'text/html' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'Student_Play_Capybara.html'; 
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+
+            alert("Standalone Student Game downloaded!\nJust send this HTML file + the 3 capy images to your students and they can play immediately.");
+        }
+
+        // --- Setup Logic ---
+        function toggleQInput() {
+            const type = document.getElementById('q-type').value;
+            const textInput = document.getElementById('q-text');
+            const fileInput = document.getElementById('q-file');
+            if (type === 'text') {
+                textInput.style.display = 'block'; fileInput.style.display = 'none';
+            } else {
+                textInput.style.display = 'none'; fileInput.style.display = 'block';
+                fileInput.accept = type === 'image' ? 'image/*' : 'audio/*';
+            }
+        }
+
+        function addOptionInput() {
+            const list = document.getElementById('options-list');
+            if (list.children.length >= 20) return alert("Maximum 20 options!");
+            const div = document.createElement('div');
+            div.className = 'option-item';
+            div.innerHTML = `<input type="radio" name="correct-answer" value="${list.children.length}">
+                             <input type="text" class="opt-input" placeholder="Enter option text">`;
+            list.appendChild(div);
+        }
+
+        function getBase64(file, callback) {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => callback(reader.result);
+        }
+
+        function addQuestion() {
+            if (questions.length >= 30) return alert("Maximum 30 questions!");
+            const type = document.getElementById('q-type').value;
+            const optionsInputs = document.querySelectorAll('.opt-input');
+            const correctRadio = document.querySelector('input[name="correct-answer"]:checked');
+            
+            let options = [];
+            optionsInputs.forEach(input => { if (input.value.trim() !== '') options.push(input.value.trim()); });
+            if (options.length < 2) return alert("Please provide at least 2 options.");
+            
+            const correctIndex = parseInt(correctRadio.value);
+            if (correctIndex >= options.length) return alert("Please select a valid correct answer.");
+
+            const saveQ = (content) => {
+                questions.push({ type, content, options, correctAnswer: options[correctIndex] });
+                document.getElementById('q-text').value = '';
+                document.getElementById('q-file').value = '';
+                updateQuestionsList();
+            };
+
+            if (type === 'text') {
+                const text = document.getElementById('q-text').value.trim();
+                if (!text) return alert("Please enter a question!");
+                saveQ(text);
+            } else {
+                const file = document.getElementById('q-file').files[0];
+                if (!file) return alert("Please upload a file!");
+                getBase64(file, saveQ);
+            }
+        }
+
+        function updateQuestionsList() {
+            const preview = document.getElementById('questions-preview');
+            document.getElementById('q-count').innerText = questions.length;
+            preview.innerHTML = '';
+            questions.forEach((q, index) => {
+                const div = document.createElement('div');
+                div.className = 'question-card';
+                let qContent = q.type === 'text' ? `<p><strong>Q${index + 1}:</strong> ${q.content}</p>` : 
+                               (q.type === 'image' ? `<p><strong>Q${index + 1}:</strong></p><img src="${q.content}" style="max-height:50px;">` :
+                               `<p><strong>Q${index + 1}:</strong></p><audio src="${q.content}" controls style="height:30px;"></audio>`);
+                let optionsHtml = '<div style="margin-top: 10px;">';
+                q.options.forEach(opt => {
+                    const isCorrect = opt === q.correctAnswer;
+                    optionsHtml += `<span class="option-badge ${isCorrect ? 'correct' : ''}">${isCorrect ? '✔ ' : ''}${opt}</span>`;
+                });
+                optionsHtml += '</div>';
+                div.innerHTML = qContent + optionsHtml + `<button onclick="deleteQuestion(${index})" style="background: #ff6b6b; padding: 5px 15px; margin-top: 10px;">Delete</button>`;
+                preview.appendChild(div);
+            });
+        }
+
+        function deleteQuestion(index) { questions.splice(index, 1); updateQuestionsList(); }
+
+        // --- Game Core Integration ---
+        function startTeacherPreview() {
+            if (questions.length === 0) return alert("Please add at least 1 question!");
+            const timeConfig = parseInt(document.getElementById('game-time').value);
+            runGameCore(questions, timeConfig);
+        }
+
+        function startStudentGame() {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            runGameCore(window.SAVED_QUESTIONS, window.SAVED_TIME);
+        }
+
+        function replayGame() {
+            if (window.STUDENT_MODE) {
+                startStudentGame();
+            } else {
+                startTeacherPreview();
+            }
+        }
+
+        function goBackToSetup() {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            if (window.STUDENT_MODE) {
+                document.getElementById('student-start-screen').classList.add('active'); 
+            } else {
+                document.getElementById('setup-screen').classList.add('active'); 
+            }
+        }
+
+        function runGameCore(qArray, timeMinutes) {
+            questions = qArray;
+            clearInterval(timerInterval);
+            clearInterval(activeMoleInterval);
+            
+            currentGameTime = timeMinutes * 60;
+            score = 0;
+            lastQuestionIndex = -1; 
+            
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById('game-screen').classList.add('active');
+            
+            updateHeader();
+            buildGameBoard();
+            nextQuestion();
+            
+            timerInterval = setInterval(() => {
+                currentGameTime--;
+                updateHeader();
+                if (currentGameTime <= 0) endGame();
+            }, 1000);
+        }
+
+        function updateHeader() {
+            document.getElementById('score-display').innerText = score;
+            const m = Math.floor(currentGameTime / 60).toString().padStart(2, '0');
+            const s = (currentGameTime % 60).toString().padStart(2, '0');
+            document.getElementById('time-display').innerText = `${m}:${s}`;
+        }
+
+        function buildGameBoard() {
+            const board = document.getElementById('game-board');
+            board.innerHTML = '';
+            for(let i = 0; i < totalMoles; i++) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'hole-wrapper';
+                wrapper.innerHTML = `
+                    <div class="hole-oval"></div>
+                    <div class="mole" id="mole-${i}" onclick="whack(${i})">
+                        <div class="mole-text-container" id="text-container-${i}">
+                            <span class="mole-text" id="mole-text-${i}"></span>
+                        </div>
+                    </div>
+                    <div class="hole-front-lip"></div>
+                `;
+                board.appendChild(wrapper);
+            }
+        }
+
+        function fitText(element, text) {
+            element.innerText = text;
+            let fontSize = 32; 
+            element.style.fontSize = fontSize + 'px';
+            const container = element.parentElement;
+            const resize = () => {
+                if (element.scrollWidth > container.clientWidth - 10 && fontSize > 10) {
+                    fontSize -= 1;
+                    element.style.fontSize = fontSize + 'px';
+                    requestAnimationFrame(resize);
+                }
+            };
+            requestAnimationFrame(resize);
+        }
+
+        function startMoleLoop() {
+            clearInterval(activeMoleInterval);
+            
+            const popMoles = () => {
+                for(let i = 0; i < totalMoles; i++) {
+                    const m = document.getElementById(`mole-${i}`);
+                    m.classList.remove('up', 'status-correct', 'status-wrong'); 
+                    m.classList.add('down');
+                    document.getElementById(`text-container-${i}`).style.opacity = '1';
+                }
+                
+                setTimeout(() => {
+                    const numToPop = Math.random() > 0.5 ? 2 : 1;
+                    let availableHoles = [0,1,2,3,4,5].sort(() => 0.5 - Math.random()).slice(0, numToPop);
+                    let chosenOptions = [...currentOptions].sort(() => 0.5 - Math.random()).slice(0, numToPop);
+                    
+                    if (Math.random() < 0.4 && !chosenOptions.includes(currentCorrect)) {
+                        chosenOptions[0] = currentCorrect;
+                    }
+
+                    availableHoles.forEach((holeId, idx) => {
+                        const mole = document.getElementById(`mole-${holeId}`);
+                        const textSpan = document.getElementById(`mole-text-${holeId}`);
+                        fitText(textSpan, chosenOptions[idx]);
+                        mole.dataset.answer = (chosenOptions[idx] === currentCorrect) ? 'correct' : 'wrong';
+                        
+                        mole.classList.remove('down');
+                        mole.classList.add('up');
+                    });
+                }, 400); 
+            };
+            
+            popMoles();
+            activeMoleInterval = setInterval(popMoles, 2500); 
+        }
+
+        function nextQuestion() {
+            let nextIndex;
+            
+            if (questions.length > 1) {
+                do {
+                    nextIndex = Math.floor(Math.random() * questions.length);
+                } while (nextIndex === lastQuestionIndex);
+            } else {
+                nextIndex = 0;
+            }
+            
+            lastQuestionIndex = nextIndex;
+            const q = questions[nextIndex];
+
+            const display = document.getElementById('current-question-display');
+            
+            if (q.type === 'text') display.innerHTML = `<span>${q.content}</span>`;
+            else if (q.type === 'image') display.innerHTML = `<img src="${q.content}">`;
+            else display.innerHTML = `<audio src="${q.content}" controls autoplay></audio>`;
+
+            let wrongOptions = q.options.filter(opt => opt !== q.correctAnswer);
+            wrongOptions = wrongOptions.sort(() => 0.5 - Math.random()).slice(0, totalMoles - 1);
+            
+            currentOptions = [q.correctAnswer, ...wrongOptions];
+            currentCorrect = q.correctAnswer;
+            
+            startMoleLoop();
+        }
+
+        function whack(id) {
+            const mole = document.getElementById(`mole-${id}`);
+            const textContainer = document.getElementById(`text-container-${id}`);
+
+            if (mole.classList.contains('up') && !mole.classList.contains('status-correct') && !mole.classList.contains('status-wrong')) {
+                playTone('hit'); 
+                textContainer.style.opacity = '0';
+                
+                if (mole.dataset.answer === 'correct') {
+                    score++;
+                    updateHeader();
+                    playTone('correct'); 
+                    
+                    mole.classList.add('status-correct');
+                    mole.style.filter = 'drop-shadow(0 0 15px #4CAF50)'; 
+                    clearInterval(activeMoleInterval); 
+                    
+                    setTimeout(() => {
+                        mole.style.filter = 'none';
+                        nextQuestion();
+                    }, 800);
+                } else {
+                    if (score > 0) {
+                        score--;
+                        updateHeader();
+                    }
+
+                    playTone('wrong'); 
+                    mole.classList.add('status-wrong');
+                    mole.style.filter = 'drop-shadow(0 0 15px #ff6b6b)'; 
+                    
+                    setTimeout(() => {
+                        mole.style.filter = 'none';
+                        mole.classList.remove('up', 'status-wrong');
+                        mole.classList.add('down');
+                        textContainer.style.opacity = '1';
+                    }, 800);
+                }
+            }
+        }
+
+        function endGame() {
+            clearInterval(timerInterval);
+            clearInterval(activeMoleInterval);
+            document.getElementById('game-screen').classList.remove('active');
+            document.getElementById('result-screen').classList.add('active');
+            document.getElementById('final-score').innerText = score;
+        }
+
+        // Khởi chạy khi tải trang
+        window.onload = function() {
+            // Nếu có dữ liệu lưu trữ từ trước (Teacher Edit hoặc Student Play)
+            if (window.SAVED_QUESTIONS) {
+                questions = window.SAVED_QUESTIONS;
+                
+                if (window.SAVED_TIME) {
+                    let timeSelect = document.getElementById('game-time');
+                    if (timeSelect) timeSelect.value = window.SAVED_TIME;
+                }
+                
+                // Chỉ load danh sách preview nếu đang ở chế độ Giáo Viên
+                if (!window.STUDENT_MODE) {
+                    updateQuestionsList();
+                }
+            }
+
+            // Nếu đây là file đã xuất cho học sinh
+            if (window.STUDENT_MODE) {
+                let setupScreen = document.getElementById('setup-screen');
+                if (setupScreen) setupScreen.remove(); // Hủy màn hình setup
+
+                document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+                document.getElementById('student-start-screen').classList.add('active');
+            }
+        };
+    </script>
+
+</body>
+</html>
