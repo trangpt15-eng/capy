@@ -77,13 +77,11 @@
             align-items: center; justify-items: center;
         }
 
-        /* --- Stump & Capybara Masking --- */
+        /* --- Stump & Capybara --- */
         .hole-wrapper {
             position: relative; width: 100%; max-width: 220px; height: 200px;
             display: flex; justify-content: center; align-items: center;
         }
-        
-        /* Gốc cây nằm ở dưới cùng */
         .hole-stump {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background-image: url('hole.jpg');
@@ -93,43 +91,27 @@
             z-index: 2;
         }
 
-        /* Vùng mặt nạ (Mask) khoét đúng vị trí cái lỗ đen trên gốc cây */
-        .mole-mask {
-            position: absolute;
-            top: 28%; /* Căn chỉnh cho khớp với lỗ đen của hole.jpg */
-            left: 28%;
-            width: 44%;
-            height: 50%;
-            overflow: hidden; /* Ẩn đi phần capy nằm ngoài lỗ */
-            border-radius: 40% 40% 50% 50%; /* Tạo dáng bo tròn hình cái lỗ */
-            z-index: 3;
-        }
-
         .mole {
             position: absolute; 
-            bottom: -100%; /* Giấu capy tuột xuống dưới đáy lỗ */
-            left: 0;
-            width: 100%; height: 100%;
+            top: 45%; left: 50%;
+            width: 75%; height: 75%;
             background-image: url('capy2.png'); 
             background-size: contain;
             background-repeat: no-repeat;
-            background-position: center bottom;
-            background-color: transparent;
-            cursor: pointer; 
-            transition: bottom 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275), filter 0.2s;
+            background-position: center;
+            z-index: 3; cursor: pointer; 
+            transform: translate(-50%, -50%) scale(0);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), filter 0.2s;
+            display: flex; justify-content: center; align-items: center;
         }
-        
-        /* Hiệu ứng trồi lên và thụt xuống mượt mà */
-        .mole.up { bottom: 0; }
-        .mole.down { bottom: -100%; }
+        .mole.up { transform: translate(-50%, -50%) scale(1); }
+        .mole.down { transform: translate(-50%, -50%) scale(0); }
         
         .mole.status-correct { background-image: url('capy1.png'); }
         .mole.status-wrong { background-image: url('capy3.png'); }
 
-        /* Bảng chữ gỗ */
         .mole-text-container {
-            position: absolute; top: 75%; left: 50%; width: 150%; height: 60px;
-            transform: translate(-50%, 0) scale(0);
+            position: absolute; top: 75%; width: 150%; height: 60px;
             background-image: url('sign.png');
             background-size: 100% 100%;
             background-repeat: no-repeat;
@@ -138,13 +120,8 @@
             padding: 5px 15px; pointer-events: none;
             text-align: center; white-space: nowrap; 
             display: flex; justify-content: center; align-items: center; overflow: hidden;
-            transition: transform 0.25s, opacity 0.2s; 
-            z-index: 5;
+            transition: opacity 0.2s; 
         }
-        .mole-text-container.show {
-            transform: translate(-50%, 0) scale(1);
-        }
-        
         .mole-text { font-weight: 700; color: #3e2723; margin: 0; line-height: 1; font-size: 32px; }
 
         /* --- Start / Result Screen --- */
@@ -313,11 +290,10 @@
                 wrapper.className = 'hole-wrapper';
                 wrapper.innerHTML = `
                     <div class="hole-stump"></div>
-                    <div class="mole-mask">
-                        <div class="mole" id="mole-${i}" onclick="whack(${i})"></div>
-                    </div>
-                    <div class="mole-text-container" id="text-container-${i}">
-                        <span class="mole-text" id="mole-text-${i}"></span>
+                    <div class="mole" id="mole-${i}" onclick="whack(${i})">
+                        <div class="mole-text-container" id="text-container-${i}">
+                            <span class="mole-text" id="mole-text-${i}"></span>
+                        </div>
                     </div>
                 `;
                 board.appendChild(wrapper);
@@ -347,7 +323,6 @@
                     const m = document.getElementById(`mole-${i}`);
                     m.classList.remove('up', 'status-correct', 'status-wrong'); 
                     m.classList.add('down');
-                    document.getElementById(`text-container-${i}`).classList.remove('show');
                     document.getElementById(`text-container-${i}`).style.opacity = '1';
                 }
                 
@@ -363,14 +338,11 @@
                     availableHoles.forEach((holeId, idx) => {
                         const mole = document.getElementById(`mole-${holeId}`);
                         const textSpan = document.getElementById(`mole-text-${holeId}`);
-                        const textContainer = document.getElementById(`text-container-${holeId}`);
-                        
                         fitText(textSpan, chosenOptions[idx]);
                         mole.dataset.answer = (chosenOptions[idx] === currentCorrect) ? 'correct' : 'wrong';
                         
                         mole.classList.remove('down');
                         mole.classList.add('up');
-                        textContainer.classList.add('show');
                     });
                 }, 400); 
             };
@@ -443,7 +415,6 @@
                         mole.style.filter = 'none';
                         mole.classList.remove('up', 'status-wrong');
                         mole.classList.add('down');
-                        textContainer.classList.remove('show');
                         textContainer.style.opacity = '1';
                     }, 800);
                 }
